@@ -1,0 +1,413 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ property.title }} - Airbnb Clone{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="property-detail">
+        <div class="property-header">
+            <h1>{{ property.title }}</h1>
+            <div class="property-location">📍 {{ property.location }}</div>
+            <div class="property-meta">
+                <span class="rating">
+                    ⭐ {{ property.average_rating|default:"0.0" }} ({{ property.review_count }} reviews)
+                </span>
+                {% if property.host %}
+                    <span class="host">Hosted by {{ property.host.get_full_name }}</span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="property-images">
+            {% if property.image_url %}
+                <img src="{{ property.image_url }}" alt="{{ property.title|escape }}" class="main-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="placeholder-image-large" style="display: none;">🏠</div>
+            {% elif property.image %}
+                <img src="{{ property.image.url }}" alt="{{ property.title|escape }}" class="main-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="placeholder-image-large" style="display: none;">🏠</div>
+            {% else %}
+                <div class="placeholder-image-large">🏠</div>
+            {% endif %}
+        </div>
+        
+        <div class="property-content">
+            <div class="property-main">
+                <div class="property-info-section">
+                    <h2>About this place</h2>
+                    <p>{{ property.description }}</p>
+                </div>
+                
+                <div class="property-details">
+                    <h3>Property Details</h3>
+                    <div class="details-grid">
+                        <div class="detail-item">
+                            <strong>Property Type:</strong> {{ property.get_property_type_display }}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Bedrooms:</strong> {{ property.bedrooms }}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Bathrooms:</strong> {{ property.bathrooms }}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Beds:</strong> {{ property.beds }}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Max Guests:</strong> {{ property.max_guests }}
+                        </div>
+                        {% if property.square_feet %}
+                        <div class="detail-item">
+                            <strong>Size:</strong> {{ property.square_feet }} sq ft
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="amenities-section">
+                    <h3>Amenities</h3>
+                    <div class="amenities-grid">
+                        {% if property.wifi %}<span class="amenity">✓ WiFi</span>{% endif %}
+                        {% if property.kitchen %}<span class="amenity">✓ Kitchen</span>{% endif %}
+                        {% if property.parking %}<span class="amenity">✓ Parking</span>{% endif %}
+                        {% if property.pool %}<span class="amenity">✓ Pool</span>{% endif %}
+                        {% if property.air_conditioning %}<span class="amenity">✓ Air Conditioning</span>{% endif %}
+                        {% if property.heating %}<span class="amenity">✓ Heating</span>{% endif %}
+                        {% if property.tv %}<span class="amenity">✓ TV</span>{% endif %}
+                        {% if property.washer %}<span class="amenity">✓ Washer</span>{% endif %}
+                        {% if property.dryer %}<span class="amenity">✓ Dryer</span>{% endif %}
+                    </div>
+                </div>
+                
+                <div class="reviews-section">
+                    <h3>Reviews ({{ property.review_count }})</h3>
+                    <div id="reviews-container">
+                        {% for review in reviews %}
+                        <div class="review-card">
+                            <div class="review-header">
+                                <div class="reviewer-info">
+                                    <strong>
+                                        {% if review.user %}
+                                            {{ review.user.get_full_name }}
+                                        {% else %}
+                                            {{ review.guest_name|default:"Anonymous" }}
+                                        {% endif %}
+                                    </strong>
+                                    <div class="review-rating">
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= review.rating %}
+                                                ⭐
+                                            {% else %}
+                                                ☆
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="review-date">{{ review.created_at|date:"F Y" }}</div>
+                            </div>
+                            <p class="review-comment">{{ review.comment }}</p>
+                        </div>
+                        {% empty %}
+                        <p>No reviews yet. Be the first to review!</p>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="add-review-section">
+                        <h4>Write a Review</h4>
+                        <form id="review-form">
+                            <input type="hidden" id="property-id" value="{{ property.id }}">
+                            <div class="form-group">
+                                <label>Rating</label>
+                                <select id="review-rating" required>
+                                    <option value="">Select rating</option>
+                                    <option value="5">5 - Excellent</option>
+                                    <option value="4">4 - Very Good</option>
+                                    <option value="3">3 - Good</option>
+                                    <option value="2">2 - Fair</option>
+                                    <option value="1">1 - Poor</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Your Review</label>
+                                <textarea id="review-comment" rows="4" required></textarea>
+                            </div>
+                            <div id="anonymous-review-fields" style="display: none;">
+                                <div class="form-group">
+                                    <label>Your Name</label>
+                                    <input type="text" id="review-guest-name">
+                                </div>
+                                <div class="form-group">
+                                    <label>Your Email</label>
+                                    <input type="email" id="review-guest-email">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Submit Review</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="property-sidebar">
+                <div class="booking-card">
+                    <div class="price-display">
+                        <span class="price">${{ property.price_per_night }}</span>
+                        <span class="price-label">per night</span>
+                    </div>
+                    <form id="booking-form">
+                        <input type="hidden" id="booking-property-id" value="{{ property.id }}">
+                        <div class="form-group">
+                            <label>Check-in</label>
+                            <input type="date" id="check-in" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Check-out</label>
+                            <input type="date" id="check-out" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Guests</label>
+                            <input type="number" id="guests" min="1" max="{{ property.max_guests }}" value="1" required>
+                        </div>
+                        <div id="anonymous-booking-fields" style="display: none;">
+                            <div class="form-group">
+                                <label>Your Name</label>
+                                <input type="text" id="booking-guest-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Your Email</label>
+                                <input type="email" id="booking-guest-email" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Phone (Optional)</label>
+                                <input type="tel" id="booking-guest-phone">
+                            </div>
+                        </div>
+                        <div class="total-price" id="total-price" style="display: none;">
+                            <strong>Total: $<span id="total-amount">0</span></strong>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            Reserve
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const isAuthenticated = api.isAuthenticated();
+    const user = api.getCurrentUser();
+    
+    // Show/hide anonymous fields
+    if (!isAuthenticated) {
+        document.getElementById('anonymous-review-fields').style.display = 'block';
+        document.getElementById('anonymous-booking-fields').style.display = 'block';
+    }
+    
+    // Booking form
+    const bookingForm = document.getElementById('booking-form');
+    const checkIn = document.getElementById('check-in');
+    const checkOut = document.getElementById('check-out');
+    const guests = document.getElementById('guests');
+    
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    checkIn.min = today;
+    checkOut.min = today;
+    
+    // Calculate total price
+    function calculateTotal() {
+        if (checkIn.value && checkOut.value) {
+            const checkInDate = new Date(checkIn.value);
+            const checkOutDate = new Date(checkOut.value);
+            if (checkOutDate > checkInDate) {
+                const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+                const pricePerNight = {{ property.price_per_night }};
+                const total = nights * pricePerNight;
+                document.getElementById('total-amount').textContent = total.toFixed(2);
+                document.getElementById('total-price').style.display = 'block';
+            }
+        }
+    }
+    
+    checkIn.addEventListener('change', () => {
+        if (checkIn.value) {
+            checkOut.min = checkIn.value;
+        }
+        calculateTotal();
+    });
+    
+    checkOut.addEventListener('change', calculateTotal);
+    
+    bookingForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const propertyId = document.getElementById('booking-property-id').value;
+        const bookingData = {
+            property_id: parseInt(propertyId),
+            check_in: checkIn.value,
+            check_out: checkOut.value,
+            guests: parseInt(guests.value),
+        };
+        
+        if (!isAuthenticated) {
+            bookingData.guest_name = document.getElementById('booking-guest-name').value;
+            bookingData.guest_email = document.getElementById('booking-guest-email').value;
+            bookingData.guest_phone = document.getElementById('booking-guest-phone').value || '';
+        }
+        
+        try {
+            const response = await api.createBooking(bookingData);
+            showNotification('Booking created successfully!', 'success');
+            setTimeout(() => {
+                window.location.href = '/dashboard/';
+            }, 1500);
+        } catch (error) {
+            showNotification(error.message || 'Failed to create booking', 'error');
+        }
+    });
+    
+    // Review form
+    const reviewForm = document.getElementById('review-form');
+    reviewForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const propertyId = document.getElementById('property-id').value;
+        const reviewData = {
+            rating: parseInt(document.getElementById('review-rating').value),
+            comment: document.getElementById('review-comment').value,
+        };
+        
+        if (!isAuthenticated) {
+            reviewData.guest_name = document.getElementById('review-guest-name').value;
+            reviewData.guest_email = document.getElementById('review-guest-email').value;
+        }
+        
+        try {
+            await api.addReview(propertyId, reviewData);
+            showNotification('Review submitted successfully!', 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } catch (error) {
+            showNotification(error.message || 'Failed to submit review', 'error');
+        }
+    });
+});
+</script>
+
+<style>
+.property-detail {
+    max-width: 1200px;
+    margin: 2rem auto;
+}
+
+.property-header h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.property-meta {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    color: var(--text-secondary);
+}
+
+.property-images {
+    margin: 2rem 0;
+}
+
+.main-image {
+    width: 100%;
+    height: 500px;
+    object-fit: cover;
+    border-radius: var(--border-radius);
+}
+
+.placeholder-image-large {
+    width: 100%;
+    height: 500px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8rem;
+    border-radius: var(--border-radius);
+}
+
+.property-content {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 3rem;
+    margin-top: 2rem;
+}
+
+.booking-card {
+    background: var(--bg-white);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    position: sticky;
+    top: 100px;
+}
+
+.price-display {
+    margin-bottom: 1.5rem;
+}
+
+.price {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.price-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.amenities-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.amenity {
+    display: block;
+    color: var(--text-secondary);
+}
+
+.review-card {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.review-rating {
+    color: #ffc107;
+}
+
+@media (max-width: 968px) {
+    .property-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .booking-card {
+        position: static;
+    }
+}
+</style>
+{% endblock %}

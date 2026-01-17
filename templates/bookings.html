@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Bookings - Airbnb Clone{% endblock %}
+
+{% block content %}
+<div class="container">
+    <section class="section">
+        <h2 class="section-title">My Bookings</h2>
+        
+        {% if not user.is_authenticated %}
+        <div class="error">
+            <p>Please <a href="/login/">log in</a> to view your bookings.</p>
+        </div>
+        {% else %}
+            <div id="bookings-container">
+                {% if bookings %}
+                    <div class="bookings-list">
+                        {% for booking in bookings %}
+                        <div class="booking-card">
+                            <div class="booking-header">
+                                <h3>
+                                    {% if booking.property %}
+                                        {{ booking.property.title }}
+                                    {% elif booking.listing %}
+                                        {{ booking.listing.title }}
+                                    {% endif %}
+                                </h3>
+                                <span class="booking-status status-{{ booking.status }}">{{ booking.get_status_display }}</span>
+                            </div>
+                            <div class="booking-details">
+                                <div class="booking-detail-item">
+                                    <strong>Check-in:</strong> {{ booking.check_in|date:"M d, Y" }}
+                                </div>
+                                <div class="booking-detail-item">
+                                    <strong>Check-out:</strong> {{ booking.check_out|date:"M d, Y" }}
+                                </div>
+                                <div class="booking-detail-item">
+                                    <strong>Guests:</strong> {{ booking.guests }}
+                                </div>
+                                <div class="booking-detail-item">
+                                    <strong>Total Price:</strong> ${{ booking.total_price }}
+                                </div>
+                                {% if booking.guest_name %}
+                                <div class="booking-detail-item">
+                                    <strong>Guest:</strong> {{ booking.guest_name }} ({{ booking.guest_email }})
+                                </div>
+                                {% endif %}
+                                {% if booking.special_requests %}
+                                <div class="booking-detail-item">
+                                    <strong>Special Requests:</strong> {{ booking.special_requests }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="booking-footer">
+                                <span class="booking-date">Booked on {{ booking.created_at|date:"M d, Y" }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="no-properties">
+                        <p>You don't have any bookings yet.</p>
+                        <p><a href="/properties/">Browse properties</a> to make your first booking!</p>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </section>
+</div>
+
+<style>
+.bookings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.booking-card {
+    background: var(--bg-white);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    border-left: 4px solid var(--primary-color);
+}
+
+.booking-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.booking-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-primary);
+}
+
+.booking-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.status-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-confirmed {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-cancelled {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-completed {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.booking-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.booking-detail-item {
+    color: var(--text-secondary);
+}
+
+.booking-detail-item strong {
+    color: var(--text-primary);
+}
+
+.booking-footer {
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %}

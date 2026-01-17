@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Messages - Airbnb Clone{% endblock %}
+
+{% block content %}
+<div class="container">
+    <section class="section">
+        <h2 class="section-title">Your Conversations</h2>
+        
+        {% if not user.is_authenticated %}
+        <div class="error">
+            <p>Please <a href="/login/">log in</a> to view your conversations.</p>
+        </div>
+        {% else %}
+            <div id="conversations-container">
+                {% if conversations %}
+                    <div class="conversations-list">
+                        {% for conversation in conversations %}
+                        <div class="conversation-card" onclick="window.location.href='/messaging/conversations/{{ conversation.conversation_id }}/'">
+                            <div class="conversation-header">
+                                <h3>
+                                    {% for participant in conversation.participants.all %}
+                                        {% if participant != user %}
+                                            {{ participant.get_full_name }}
+                                        {% endif %}
+                                    {% empty %}
+                                        Conversation
+                                    {% endfor %}
+                                </h3>
+                                <span class="conversation-date">{{ conversation.created_at|date:"M d, Y" }}</span>
+                            </div>
+                            <div class="conversation-preview">
+                                {% if conversation.messages.exists %}
+                                    {% with last_message=conversation.messages.last %}
+                                        <p>{{ last_message.message_body|truncatewords:15 }}</p>
+                                        <span class="message-time">{{ last_message.sent_at|timesince }} ago</span>
+                                    {% endwith %}
+                                {% else %}
+                                    <p class="no-messages">No messages yet. Start the conversation!</p>
+                                {% endif %}
+                            </div>
+                            <div class="message-count">
+                                {{ conversation.messages.count }} message{{ conversation.messages.count|pluralize }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="no-properties">
+                        <p>You don't have any conversations yet.</p>
+                        <p>Start messaging hosts or guests from property pages!</p>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </section>
+</div>
+
+<style>
+.conversations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.conversation-card {
+    background: var(--bg-white);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    border-left: 4px solid var(--primary-color);
+}
+
+.conversation-card:hover {
+    transform: translateX(4px);
+    box-shadow: var(--shadow-md);
+}
+
+.conversation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.conversation-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.conversation-date {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.conversation-preview {
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.conversation-preview p {
+    margin: 0.5rem 0;
+}
+
+.message-time {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.message-count {
+    color: var(--primary-color);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.no-messages {
+    font-style: italic;
+    color: var(--text-secondary);
+}
+</style>
+{% endblock %}

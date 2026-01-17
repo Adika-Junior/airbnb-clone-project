@@ -1,0 +1,73 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}Airbnb Clone - Find Your Perfect Stay{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header class="header">
+        <a href="/" class="logo">Airbnb Clone</a>
+        <nav class="nav" id="main-nav">
+            <a href="/">Home</a>
+            <a href="/properties/">Properties</a>
+            <a href="/travel/listings/">Travel</a>
+            {% if user.is_authenticated %}
+                {% if user.role == 'host' or user.role == 'admin' %}
+                    <a href="/properties/add/">Add Property</a>
+                {% endif %}
+                <a href="/dashboard/">Dashboard</a>
+                <a href="/messaging/conversations/">Messages</a>
+            {% endif %}
+            <a href="/swagger/">API Docs</a>
+        </nav>
+        <div class="user-menu" id="user-menu" style="display: none;">
+            <span class="user-info" id="user-info"></span>
+            <button class="btn btn-secondary" id="logout-btn">Logout</button>
+        </div>
+        <div class="auth-links">
+            <a href="/login/" class="auth-link login-link btn btn-secondary">Log In</a>
+            <a href="/signup/" class="auth-link signup-link btn btn-primary">Sign Up</a>
+        </div>
+        <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Support</h4>
+                <a href="#">Help Center</a>
+                <a href="#">Safety</a>
+                <a href="#">Disability Support</a>
+            </div>
+            <div class="footer-section">
+                <h4>Hosting</h4>
+                <a href="#">Airbnb your home</a>
+                <a href="#">AirCover for Hosts</a>
+                <a href="#">Hosting resources</a>
+            </div>
+            <div class="footer-section">
+                <h4>Airbnb</h4>
+                <a href="#">Newsroom</a>
+                <a href="#">New features</a>
+                <a href="#">Careers</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Airbnb Clone. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/app.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

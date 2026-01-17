@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Airbnb Clone{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard">
+        <div class="dashboard-sidebar">
+            <nav>
+                <a href="/dashboard/" class="active">Profile</a>
+                <a href="/api/properties/">My Properties</a>
+                <a href="/api/travel/bookings/">My Bookings</a>
+                <a href="/api/messaging/conversations/">Messages</a>
+                <a href="/api/travel/listings/">Travel Listings</a>
+            </nav>
+        </div>
+        
+        <div class="dashboard-content">
+            <div class="user-profile">
+                <div class="user-avatar" id="user-avatar">
+                    <span id="avatar-initials">U</span>
+                </div>
+                <div class="user-details">
+                    <h2 id="user-name">Loading...</h2>
+                    <p id="user-email">Loading...</p>
+                    <p id="user-role">Loading...</p>
+                </div>
+            </div>
+            
+            <div>
+                <h3>Account Information</h3>
+                <div id="account-info">
+                    <p>Loading account information...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    // Check if user is authenticated
+    if (!api.isAuthenticated()) {
+        window.location.href = '/login/';
+        return;
+    }
+    
+    try {
+        // Get current user profile
+        const user = await api.getCurrentUserProfile();
+        
+        // Update UI
+        document.getElementById('user-name').textContent = `${user.first_name} ${user.last_name}`;
+        document.getElementById('user-email').textContent = user.email;
+        document.getElementById('user-role').textContent = `Role: ${user.role.charAt(0).toUpperCase() + user.role.slice(1)}`;
+        
+        // Update avatar
+        const initials = `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
+        document.getElementById('avatar-initials').textContent = initials;
+        
+        // Update account info
+        document.getElementById('account-info').innerHTML = `
+            <p><strong>User ID:</strong> ${user.user_id}</p>
+            <p><strong>Phone:</strong> ${user.phone_number || 'Not provided'}</p>
+            <p><strong>Member since:</strong> ${new Date(user.created_at).toLocaleDateString()}</p>
+        `;
+    } catch (error) {
+        console.error('Error loading profile:', error);
+        showNotification('Error loading profile. Please try again.', 'error');
+    }
+});
+</script>
+{% endblock %}

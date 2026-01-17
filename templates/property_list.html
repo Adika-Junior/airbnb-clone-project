@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h2>All Properties</h2>
+    <a href="/properties/add/" style="margin-bottom:1rem;display:inline-block;">Add New Property</a>
+    <ul>
+        {% for property in properties %}
+        <li>
+            <strong>{{ property.title }}</strong> - ${{ property.price }}<br>
+            {{ property.description }}<br>
+            <em>{{ property.location }}</em>
+        </li>
+        {% empty %}
+        <li>No properties found.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

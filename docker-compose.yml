@@ -1,0 +1,137 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: airbnb-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-airbnb_clone_db}
+      POSTGRES_USER: ${POSTGRES_USER:-airbnb_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airbnb_pass}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - airbnb-db-data:/var/lib/postgresql/data
+    networks:
+      - airbnb-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-airbnb_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: airbnb-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - airbnb-redis-data:/data
+    networks:
+      - airbnb-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: airbnb-rabbitmq
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    volumes:
+      - airbnb-rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - airbnb-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Django Web Application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: airbnb-web
+    command: gunicorn airbnb_clone.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    volumes:
+      - .:/app
+      - ./staticfiles:/app/staticfiles
+      - ./media:/app/media
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-change-this}
+      - DEBUG=${DEBUG:-False}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-airbnb_user}:${POSTGRES_PASSWORD:-airbnb_pass}@db:5432/${POSTGRES_DB:-airbnb_clone_db}
+      - REDIS_URL=redis://redis:6379/1
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=rpc://
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - airbnb-network
+
+  # Celery Worker
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: airbnb-celery-worker
+    command: celery -A airbnb_clone worker --loglevel=info
+    volumes:
+      - .:/app
+    environment:
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=rpc://
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-airbnb_user}:${POSTGRES_PASSWORD:-airbnb_pass}@db:5432/${POSTGRES_DB:-airbnb_clone_db}
+    depends_on:
+      - rabbitmq
+      - db
+      - redis
+    networks:
+      - airbnb-network
+
+  # Celery Beat (Scheduler)
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: airbnb-celery-beat
+    command: celery -A airbnb_clone beat --loglevel=info
+    volumes:
+      - .:/app
+    environment:
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=rpc://
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-airbnb_user}:${POSTGRES_PASSWORD:-airbnb_pass}@db:5432/${POSTGRES_DB:-airbnb_clone_db}
+    depends_on:
+      - rabbitmq
+      - db
+      - redis
+    networks:
+      - airbnb-network
+
+networks:
+  airbnb-network:
+    driver: bridge
+
+volumes:
+  airbnb-db-data:
+  airbnb-redis-data:
+  airbnb-rabbitmq-data:
