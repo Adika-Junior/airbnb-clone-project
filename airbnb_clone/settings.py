@@ -28,7 +28,14 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-this-in-produc
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ['true', '1', 'yes']
 
 # For PythonAnywhere deployment
-ALLOWED_HOSTS = ['*'] if DEBUG else os.environ.get('ALLOWED_HOSTS', '').split(',')
+# In production, set ALLOWED_HOSTS in environment variable
+if os.environ.get('ALLOWED_HOSTS'):
+    ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+elif DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    # Default to PythonAnywhere domain if in production
+    ALLOWED_HOSTS = ['itspjay.pythonanywhere.com', 'www.itspjay.pythonanywhere.com']
 
 
 # ============================================
@@ -214,11 +221,15 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:80",
     "http://127.0.0.1:3000",
+    # PythonAnywhere production URLs
+    "https://itspjay.pythonanywhere.com",
+    "http://itspjay.pythonanywhere.com",
 ]
 
 # Add production frontend URLs from environment
 if os.environ.get('CORS_ALLOWED_ORIGINS'):
-    CORS_ALLOWED_ORIGINS.extend(os.environ.get('CORS_ALLOWED_ORIGINS', '').split(','))
+    cors_origins = os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
+    CORS_ALLOWED_ORIGINS.extend([origin.strip() for origin in cors_origins if origin.strip()])
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all in development, restrict in production
