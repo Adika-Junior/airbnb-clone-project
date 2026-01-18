@@ -37,7 +37,7 @@ db.sqlite3
 db.sqlite3-journal
 /media
 /staticfiles
-/static
+# Note: /static is kept in repo (source static files), only /staticfiles is ignored (collected static)
 
 # Environment variables
 .env
