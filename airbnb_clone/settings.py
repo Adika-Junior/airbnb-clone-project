@@ -27,15 +27,21 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-this-in-produc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ['true', '1', 'yes']
 
-# For PythonAnywhere deployment
-# In production, set ALLOWED_HOSTS in environment variable
+# ALLOWED_HOSTS configuration
+# Supports both PythonAnywhere and Render deployments
 if os.environ.get('ALLOWED_HOSTS'):
-    ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+    ALLOWED_HOSTS = [host.strip() for host in os.environ.get('ALLOWED_HOSTS', '').split(',') if host.strip()]
 elif DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
-    # Default to PythonAnywhere domain if in production
+    # Default allowed hosts (can be overridden via environment variable)
+    # For Render: Set ALLOWED_HOSTS in Render dashboard with your *.onrender.com domain
+    # For PythonAnywhere: Set to your PythonAnywhere domain
     ALLOWED_HOSTS = ['itspjay.pythonanywhere.com', 'www.itspjay.pythonanywhere.com']
+    
+    # Auto-detect Render domain if RENDER_EXTERNAL_HOSTNAME is set
+    if os.environ.get('RENDER_EXTERNAL_HOSTNAME'):
+        ALLOWED_HOSTS.append(os.environ.get('RENDER_EXTERNAL_HOSTNAME'))
 
 
 # ============================================
@@ -90,6 +96,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise for static files (must be after SecurityMiddleware)
     'corsheaders.middleware.CorsMiddleware',  # CORS middleware (must be early)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -206,6 +213,15 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# WhiteNoise configuration for static files (production)
+# WhiteNoise allows Django to serve static files efficiently in production
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Additional static files directories
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -230,6 +246,14 @@ CORS_ALLOWED_ORIGINS = [
 if os.environ.get('CORS_ALLOWED_ORIGINS'):
     cors_origins = os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
     CORS_ALLOWED_ORIGINS.extend([origin.strip() for origin in cors_origins if origin.strip()])
+
+# Auto-add Render domains if RENDER_EXTERNAL_HOSTNAME is set
+if os.environ.get('RENDER_EXTERNAL_HOSTNAME'):
+    render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+    CORS_ALLOWED_ORIGINS.extend([
+        f"https://{render_host}",
+        f"http://{render_host}",
+    ])
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all in development, restrict in production
@@ -313,13 +337,23 @@ except Exception:
 # CELERY CONFIGURATION
 # ============================================
 
-# Celery with RabbitMQ (required for Milestone 6)
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'amqp://guest:guest@localhost:5672//')
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'rpc://')
-
-# Alternative: Redis (if RabbitMQ not available)
-# CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
-# CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://127.0.0.1:6379/0')
+# Celery Configuration
+# Prefer Redis if available (better for Render), fallback to RabbitMQ
+if os.environ.get('REDIS_URL'):
+    # Use Redis for Celery if REDIS_URL is set (Render deployment)
+    redis_url = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1')
+    # Use database 0 for Celery, database 1 for cache
+    celery_redis_url = redis_url.rsplit('/', 1)[0] + '/0'  # Change to database 0
+    CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', celery_redis_url)
+    CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', celery_redis_url)
+elif os.environ.get('CELERY_BROKER_URL'):
+    # Use explicitly set broker URL
+    CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL')
+    CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'rpc://')
+else:
+    # Default to RabbitMQ (for local development with docker-compose)
+    CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'amqp://guest:guest@localhost:5672//')
+    CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'rpc://')
 
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'

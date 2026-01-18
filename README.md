@@ -138,9 +138,27 @@ docker-compose up -d
 
 ## 🚀 Deployment
 
-For production deployment, see:
+### Render (Recommended - Docker)
+
+Deploy to Render using Docker in minutes:
+
+1. **Quick Start**: See `RENDER_QUICK_START.md`
+2. **Full Guide**: See `RENDER_DEPLOYMENT.md`
+3. **Configuration**: `render.yaml` (Render Blueprint)
+
+**Features**:
+- ✅ Automatic Docker builds
+- ✅ PostgreSQL & Redis included
+- ✅ Celery workers support
+- ✅ Auto-scaling
+- ✅ HTTPS by default
+
+### Other Deployment Options
+
+For other platforms, see:
 - `MILESTONE_6_DEPLOYMENT_GUIDE.md` (in parent directory)
 - `DEPLOYMENT_SETUP.md`
+- `PYTHONANYWHERE_DEPLOYMENT.md` (PythonAnywhere)
 
 ## ✅ Status
 
